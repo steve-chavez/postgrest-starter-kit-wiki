@@ -1,16 +1,16 @@
 ## Overview
-In the [previous page](Production-Infrastructure) we have setup our production infrastructure and build pipeline (ECS/RDS/Github/CricleCI) and it's just wating to build our code. As you know, pushing database code to production is not as easy as replacing som files. We need to generate the SQL DDL (Data Definition Language) statements that take our database code from old version to the new one.
-This is done through "migration" files. An excelent tool to manage and track those files is [Sqitch](http://sqitch.org/).
-This would be enougth if we would have used the database as a "dumb store" since, after the first version is deployed, there would be very rare and few changes to the schema, so writing those files by hand would not be that hard. We however, have a lot of the code in the database that guarantees the integrity of our data. We've also split that code into multiple files and directories. Having to remember what changed and where would be impossible so this is were the dev tools come in handy again. You do not have to remember what files you changed in order to implement a feature, you change any sql fiel you need, and at the end, when you have your feature ready to be pushed to production, you just run one command, and that migration file will be generated for you. This comes with one warning though. While most of the time, those statements will be exactly what you need to run, you will still have to review them and make sure they do not change something that they should not. This is especially needed when your feature involved changes to the tables holding the data (like renaming a column, adding an index). You can be a bit more relaxed when the changes involve only views and stored procedures since a mistake there can be fixed with a new version.
+In the [previous page](Production-Infrastructure) we have setup our production infrastructure and build pipeline (ECS/RDS/Github/CircleCI) and it's just waiting to build our code. As you know, pushing database code to production is not as easy as replacing some files. We need to generate the SQL DDL (Data Definition Language) statements that take our database code from the old version to the new one.
+This is done through "migration" files. An excellent tool to manage and track those files is [Sqitch](http://sqitch.org/).
+This would be enough if we would have used the database as a "dumb store" since, after the first version is deployed, there would be very rare and few changes to the schema, so writing those files by hand would not be that hard. We, however, have a lot of code in the database that guarantees the integrity of our data. We've also split that code into multiple files and directories. Having to remember what changed and where would be impossible, so this is were the dev tools come in handy again. You do not have to remember what files you changed in order to implement a feature, you change any sql file you need, and at the end, when you have your feature ready to be pushed to production, you just run one command, and that migration file will be generated for you. This comes with one warning though. While those statements will most of the time be exactly what you need to run, you will still have to review them and make sure they do not change something that they should not. This is especially needed when your feature involved changes to the tables holding the data (like renaming a column, adding an index). You can be a bit more relaxed when the changes involve only views and stored procedures since a mistake there can be fixed with a new version.
 
-But anyway, let's see how actually that process goes
+But anyway, let's see how that process actually goes
 
 ## Initial Database State
 Right now our code is split into multiple files. We need to create the first migration that has the initial state of our database.
 
 Make sure your stack is up (we need it running when creating migrations), if not, bring it up with `docker-compose up -d`
 
-Creat the first migration
+Create the first migration
 
 ```sh
 subzero migrations init
@@ -44,7 +44,7 @@ This last push will trigger CircleCI and it will start testing the code again, a
 Let the process finish and check it's *green*.
 
 ## Adding data to migrations
-If you look at the `db/migrations/deploy/0000000001-initial.sql` file, you'll see only statements that will create all you entities, you will not see any statement that will add the actaul data in the tables that you currently have in your dev stack. For most of the data, this is true, however there are still some places where the data in the tables is more like a configuration than user generated data so it also needs to be reflected in a migration. Since it's impossible to know which is which, this will be a manual step, and also, this is only specific to the starter-kit example, your application might not have that kind of data.
+If you look at the `db/migrations/deploy/0000000001-initial.sql` file, you'll see only statements that will create all your entities, you will not see any statement that will add the actual data in the tables that you currently have in your dev stack. For most of the data, this is true, however there are still some places where the data in the tables is more like a configuration than user generated data so it also needs to be reflected in a migration. Since it's impossible to know which is which, this will be a manual step, and also, this is only specific to the starter-kit example, your application might not have that kind of data.
 
 Create an empty migration
 ```
@@ -161,7 +161,7 @@ GRANT SELECT(todo) ON TABLE todos TO anonymous;
 COMMIT TRANSACTION;
 ```
 
-The devtools correctly detected that only one view changed since your last migration and creted the appropriate DDL statements.
+The devtools correctly detected that only one view changed since your last migration and created the appropriate DDL statements.
 
 As with any new migration, remember to also add it to git
 
@@ -172,7 +172,7 @@ git push
 ```
 
 # Pushing to Production
-The step we've been all waiting for.
+The step we've all been waiting for.
 After you've made sure all tests pass, and all the correct migrations are in git, you will push new code to production by creating a git tag.
 CircleCI will take care of building the new docker images, deploying the latest database migrations and tell ECR to start using the new images. 
 
